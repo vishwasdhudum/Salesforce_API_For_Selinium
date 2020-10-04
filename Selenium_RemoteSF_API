@@ -1,0 +1,126 @@
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+
+import org.json.JSONObject;
+
+public class Selenium_RemoteSF_API {
+    public static void main(String[] args) {
+    }
+    
+    private static String getAccessToken(String orgName) {
+    	String token = null;
+    	try {
+    		InputStream input = new FileInputStream("src/config.properties");
+    		Properties prop = new Properties();
+    		prop.load(input);
+    		
+        	// URL url1 = new URL("https://wes-srp--dominos.my.salesforce.com/services/oauth2/token?");//your url i.e fetch data from .
+    		URL url1 = new URL(prop.getProperty(orgName+".oAuthEndPoint"));
+            HttpURLConnection conn1 = (HttpURLConnection) url1.openConnection();
+            conn1.setRequestMethod("POST");
+            // String urlParameters = "grant_type=password&client_id=3MVG9eQyYZ1h89Hdp1wIPurrJUQ.legWcYZTmjukHLnEy3CPCKDvDwklKxbk1kw.3pz358Bt3DnGqtUbpfh9O&client_secret=5FF7C1AEB2F4F7413195726E89DAB7EB40B065D410A60E100392ED69C7060731&username=vdhudum@wiley.com.dominos&password=Hayati@123TcPTsuqxLyxL0LckNuv06IFVg";
+            StringBuffer requestBodyText = new StringBuffer("grant_type=password");
+			requestBodyText.append("&username=");
+			requestBodyText.append(prop.getProperty(orgName+".username"));
+			System.out.println("UsrNm-->"+prop.getProperty(orgName+".username"));
+			requestBodyText.append("&password=");
+			requestBodyText.append(prop.getProperty(orgName+".password")+prop.getProperty(orgName+".SF_Token"));
+			requestBodyText.append("&client_id=");
+			requestBodyText.append(prop.getProperty(orgName+".ConsumerKey"));
+			requestBodyText.append("&client_secret=");
+			requestBodyText.append(prop.getProperty(orgName+".ConsumerSecret"));
+			String urlParameters = requestBodyText.toString();
+    		
+    		// Send post request
+            conn1.setDoOutput(true);
+    		DataOutputStream wr = new DataOutputStream(conn1.getOutputStream());
+    		wr.writeBytes(urlParameters);
+    		wr.flush();
+    		wr.close();
+
+    		int responseCode = conn1.getResponseCode();
+    		
+            if (responseCode != 200) {
+                throw new RuntimeException("Failed : HTTP Error code : "+ conn1.getResponseCode());
+            }
+            InputStreamReader in = new InputStreamReader(conn1.getInputStream());
+            BufferedReader br = new BufferedReader(in);
+            String output;
+            while ((output = br.readLine()) != null) {
+                JSONObject obj = new JSONObject(output);
+                token = obj.getString("access_token");
+            }
+            conn1.disconnect();
+        } catch (Exception e) {
+        	System.out.println("Exception occurred while connecting to Salesforce : ("+e+")");
+        }
+		return token;
+    }
+    
+    public static Map<String, String> executeQuery(String orgName, String query) {
+    	Map<String, String> fieldToValue = new HashMap<String, String>();
+    	try {
+    		InputStream input = new FileInputStream("src/config.properties");
+    		Properties prop = new Properties();
+    		prop.load(input);
+    		String token = getAccessToken(orgName);
+    		// URL urlPost = new URL("https://wes-srp--dominos.my.salesforce.com/services/apexrest/SeleniumService/");
+    		URL urlPost = new URL(prop.getProperty(orgName+".apiEndPoint"));
+    		System.out.println("API endpoint-->"+prop.getProperty(orgName+".apiEndPoint"));
+            HttpURLConnection httpCon = (HttpURLConnection) urlPost.openConnection();
+            httpCon.setDoOutput(true);
+            httpCon.setRequestMethod("POST");
+            httpCon.setRequestProperty("Content-Type", "application/json");
+            httpCon.setRequestProperty("Authorization", "Authorization: Bearer "+token);
+            OutputStream os = httpCon.getOutputStream();
+            OutputStreamWriter osw = new OutputStreamWriter(os, "UTF-8");    
+            String queryJSON = "{\"query\":\""+ query+"\"}";
+            osw.write(queryJSON);
+            osw.flush();
+            osw.close();
+            os.close();  //don't forget to close the OutputStream
+            httpCon.connect();
+
+            //read the inputstream and print it
+            BufferedInputStream bis = new BufferedInputStream(httpCon.getInputStream());
+            ByteArrayOutputStream buf = new ByteArrayOutputStream();
+            int result2 = bis.read();
+            while(result2 != -1) {
+                buf.write((byte) result2);
+                result2 = bis.read();
+            }
+            String response = buf.toString();
+            // System.out.println("response-->"+response);
+            
+    		response = response.split(":")[1];
+    		response = response.replace("\"","");
+    		response = response.replace("(","");
+    		response = response.replace(")","");
+    		response = response.replace("{","");
+    		response = response.replace("}","");
+    		
+    		System.out.println("----- Response -----");
+    		for(String resp:response.split(",")) {
+    			fieldToValue.put(resp.split("=")[0].trim(), resp.split("=")[1].trim());
+    		}
+    		
+    	}catch (Exception e) {
+    		System.out.println("Exception occurred while fetchin data from Salesforce : ("+e+")");
+        }
+    	
+    	return fieldToValue;
+    }
+
+}
