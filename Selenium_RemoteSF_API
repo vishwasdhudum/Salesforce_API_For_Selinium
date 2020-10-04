@@ -30,7 +30,7 @@ public class Selenium_RemoteSF_API {
     		URL url1 = new URL(prop.getProperty(orgName+".oAuthEndPoint"));
             HttpURLConnection conn1 = (HttpURLConnection) url1.openConnection();
             conn1.setRequestMethod("POST");
-            // String urlParameters = "grant_type=password&client_id=3MVG9eQyYZ1h89Hdp1wIPurrJUQ.legWcYZTmjukHLnEy3CPCKDvDwklKxbk1kw.3pz358Bt3DnGqtUbpfh9O&client_secret=5FF7C1AEB2F4F7413195726E89DAB7EB40B065D410A60E100392ED69C7060731&username=vdhudum@wiley.com.dominos&password=Hayati@123TcPTsuqxLyxL0LckNuv06IFVg";
+            // String urlParameters = "grant_type=password&client_id=3MV**********************fh9O&client_secret=5F****************31&username=v****@****y.com.d*****&password=H*******23TcP**************";
             StringBuffer requestBodyText = new StringBuffer("grant_type=password");
 			requestBodyText.append("&username=");
 			requestBodyText.append(prop.getProperty(orgName+".username"));
